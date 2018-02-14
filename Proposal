@@ -15,7 +15,6 @@ The deadline for the proposal is Thursday, March 8.
 ### Methods (Regression)：  
 1. SVM regression  
 2. regression tree  
-3. -overfiiting: random forest, adaptboost, XGboost  
+3. -overfiiting: random forest, adaboost, XGboost  
 4. Neural Network  
 5. LOESS(local regression)  
-
