@@ -10,3 +10,12 @@ Please include [503 project] in the subject line.
 The proposal should be approximately no more than one page. 
 
 The deadline for the proposal is Thursday, March 8.
+
+
+### Methods (Regression)：  
+1. SVM regression  
+2. regression tree  
+3. -overfiiting: random forest, adaptboost, XGboost  
+4. Neural Network  
+5. LOESS(local regression)  
+
