@@ -47,6 +47,9 @@ test2$store_and_fwd_flag=as.factor(test2$store_and_fwd_flag)
 test2$vendor_id=as.factor(test2$vendor_id)
 write.csv(train2, "train2.csv")
 write.csv(test2, "test2.csv")
+##################################
+## new data already uploaded in google drive:503-project
+
 
 ## link:https://www.kaggle.com/headsortails/nyc-taxi-eda-update-the-fast-the-curious
 #######################
