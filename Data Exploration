@@ -13,6 +13,7 @@ train_id=sample(1:N,as.integer(N*0.7))
 train=dat[train_id,]
 test=dat[-train_id]
 
+## feature processing:
 library(lubridate)
 l=1
 train2=data.frame()
@@ -29,12 +30,61 @@ while(l<nrow(train)){
 train2=na.omit(train2)
 train2$store_and_fwd_flag=as.factor(train2$store_and_fwd_flag)
 train2$vendor_id=as.factor(train2$vendor_id)
-summary(train2)
 
+l=1
+test2=data.frame()
+while(l<nrow(test)){
+    te=test[l:(l+999),]
+    te$pickup_wd=format(as.POSIXlt(te$pickup_datetime),format='%w') 
+    te$pickup_mm=format(as.POSIXlt(te$pickup_datetime),format='%m') 
+    te$pickup_hh=format(as.POSIXlt(te$pickup_datetime),format='%H') 
+    te$dist=abs(te$dropoff_longitude-te$pickup_longitude)+abs(te$dropoff_latitude-te$pickup_latitude)
+    test2=rbind(test2,te)
+    l=l+1000
+}
+test2=na.omit(test2)
+test2$store_and_fwd_flag=as.factor(test2$store_and_fwd_flag)
+test2$vendor_id=as.factor(test2$vendor_id)
+write.csv(train2, "train2.csv")
+write.csv(test2, "test2.csv")
 
 ## link:https://www.kaggle.com/headsortails/nyc-taxi-eda-update-the-fast-the-curious
 #######################
 # visualization
+library(ggplot2)
 # remove outliers
 train2=train2[dist<2,]
 train2=train2[trip_duration<1e6,]
+
+# histgram of trip_duration
+ggplot(train2[trip_duration<5000],aes(x=trip_duration))+geom_histogram()
+## the distrubution of trip_duration is heavily left-skewed.
+
+# trip_duration vs distant
+ggplot(train2,aes(x=dist,y=trip_duration,col=as.factor(pickup_hh)))+geom_point()
+## from the plot, we can find that dist=0.3 is a discriminant point which can seperate the trips into two cat: long dist & short dist
+
+# box-plot of trip_duration vs hour of day
+## long-dist: using log transformation of trip_duration
+ggplot(train2[dist>0.3,],aes(x=as.factor(pickup_hh),y=log(trip_duration+1)))+geom_boxplot()
+## effects of ruch hours on trip_duration
+
+## short-dist: using log transformation of trip_duration
+ggplot(train2[dist<=0.3,],aes(x=as.factor(pickup_hh),y=log(trip_duration+1)))+geom_boxplot()
+## no significant effect of rush hous
+
+# geographic distribution 
+library(ggmap)
+map<-get_map(location='new york', zoom='auto', maptype = "roadmap",source='google',color='color')
+## pick up
+ggmap(map) + geom_point(aes(x=pickup_longitude, y=pickup_latitude, show_guide = TRUE, col=log(trip_duration+1)), 
+  data=train2[dist<=0.3,], na.rm = T,alpha=0.2)+scale_colour_gradient(low = "blue", high = "red")
+ggmap(map) + geom_point(aes(x=pickup_longitude, y=pickup_latitude, show_guide = TRUE, col=log(trip_duration+1)), 
+  data=train2[dist>0.3,], na.rm = T,alpha=0.2)+scale_colour_gradient(low = "blue", high = "red")
+
+## drop off
+ggmap(map) + geom_point(aes(x=dropoff_longitude, y=dropoff_latitude, show_guide = TRUE, col=log(trip_duration+1)), 
+  data=train2[dist<=0.3,], na.rm = T,alpha=0.2)+scale_colour_gradient(low = "blue", high = "red")
+ggmap(map) + geom_point(aes(x=dropoff_longitude, y=dropoff_latitude, show_guide = TRUE, col=log(trip_duration+1)), 
+  data=train2[dist>0.3,], na.rm = T,alpha=0.2)+scale_colour_gradient(low = "blue", high = "red")
+
