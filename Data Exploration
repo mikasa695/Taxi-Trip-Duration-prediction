@@ -1,4 +1,5 @@
 ########################## 
+
 # Data processing
 # read data
 library(data.table)
@@ -19,6 +20,7 @@ train$pickup_hh=format(as.POSIXlt(train$pickup_datetime),format='%H')
 train$dist=abs(train$dropoff_longitude-train$pickup_longitude)+abs(train$dropoff_latitude-train$pickup_latitude)
 train$store_and_fwd_flag=as.factor(train$store_and_fwd_flag)
 
+## link:https://www.kaggle.com/headsortails/nyc-taxi-eda-update-the-fast-the-curious
 #######################
 # visualization
 # remove outliers
