@@ -14,15 +14,27 @@ train=dat[train_id,]
 test=dat[-train_id]
 
 library(lubridate)
-train$pickup_wd=format(as.POSIXlt(train$pickup_datetime),format='%w') 
-train$pickup_mm=format(as.POSIXlt(train$pickup_datetime),format='%m') 
-train$pickup_hh=format(as.POSIXlt(train$pickup_datetime),format='%H') 
-train$dist=abs(train$dropoff_longitude-train$pickup_longitude)+abs(train$dropoff_latitude-train$pickup_latitude)
-train$store_and_fwd_flag=as.factor(train$store_and_fwd_flag)
+l=1
+train2=data.frame()
+while(l<nrow(train)){
+    tr=train[l:(l+999),]
+    tr$pickup_wd=format(as.POSIXlt(tr$pickup_datetime),format='%w') 
+    tr$pickup_mm=format(as.POSIXlt(tr$pickup_datetime),format='%m') 
+    tr$pickup_hh=format(as.POSIXlt(tr$pickup_datetime),format='%H') 
+    tr$dist=abs(tr$dropoff_longitude-tr$pickup_longitude)+abs(tr$dropoff_latitude-tr$pickup_latitude)
+    train2=rbind(train2,tr)
+    l=l+1000
+}
+
+train2=na.omit(train2)
+train2$store_and_fwd_flag=as.factor(train2$store_and_fwd_flag)
+train2$vendor_id=as.factor(train2$vendor_id)
+summary(train2)
+
 
 ## link:https://www.kaggle.com/headsortails/nyc-taxi-eda-update-the-fast-the-curious
 #######################
 # visualization
 # remove outliers
-train=train[dist<2,]
-train=train[trip_duration<1e6,]
+train2=train2[dist<2,]
+train2=train2[trip_duration<1e6,]
