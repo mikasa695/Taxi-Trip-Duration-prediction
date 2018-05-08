@@ -1,0 +1,84 @@
+# read data
+train=read.table('train_sample_clean.csv',sep=',',header=T)
+test=read.table('test_sample_clean.csv',sep=',',header=T)
+
+library(xgboost)
+train_X=train[,-c(1:4,6:7,13:14,19)]
+train_Y=train[,14]
+test_X=test[,-c(1:3,5:6,12:13)]
+test_Y=test[,13]
+
+#scale:
+dat_norm=scale(rbind(train_X,test_X))
+norm_train_X=dat_norm[1:nrow(train_X),]
+norm_test_X=dat_norm[-1:nrow(train_X),]
+
+# cross-validation for xgboost
+## nround
+set.seed(123)
+library(caret)
+flds <- createFolds(train_Y, k = 10, list = T)
+rmse_cv1=c()
+rmse_cv2=c()
+for(k in seq(10,200,10)){
+  err1=0
+  err2=0
+  for(fld in flds){
+    xgbm1=xgboost(data =as.matrix(train_X[-fld,]), label = train_Y[-fld],verbose=0,eta = 0.5, nrounds = k)
+    pred1 = predict(xgbm1, as.matrix(train_X[fld,]))
+    err1=err1+sum((pred1-train_Y[fld])^2)
+    # normalized data
+    xgbm2=xgboost(data =as.matrix(norm_train_X[-fld,]), label = train_Y[-fld],verbose=0,eta = 0.5, nrounds = k)
+    pred2 = predict(xgbm2, as.matrix(norm_train_X[fld,]))
+    err2=err2+sum((pred2-train_Y[fld])^2)
+  }
+  rmse_cv1=c(rmse_cv1,sqrt(err1/nrow(train_X)))
+  rmse_cv2=c(rmse_cv2,sqrt(err2/nrow(train_X)))
+}
+
+rmse_cv_nr=data.frame(nrounds=rep(seq(10,200,10),2),rmse=c(rmse_cv1,rmse_cv2),
+                      type=c(rep('original',20),rep('standardized',20)))
+ggplot(rmse_cv_nr,aes(x=nrounds,y=rmse,col=type))+geom_line(aes(group=type))+geom_point()
+
+## learning rate
+rmse_cv3=c()
+rmse_cv4=c()
+for(r in seq(0.1,1,0.05)){
+  err3=0
+  err4=0
+  for(fld in flds){
+    xgbm3=xgboost(data =as.matrix(train_X[-fld,]), label = train_Y[-fld],verbose=0,eta = r, nrounds = 20)
+    pred3 = predict(xgbm3, as.matrix(train_X[fld,]))
+    err3=err3+sum((pred3-train_Y[fld])^2)
+    # normalized data
+    xgbm4=xgboost(data =as.matrix(norm_train_X[-fld,]), label = train_Y[-fld],verbose=0,eta = r, nrounds = 20)
+    pred4 = predict(xgbm4, as.matrix(norm_train_X[fld,]))
+    err4=err4+sum((pred4-train_Y[fld])^2)
+  }
+  rmse_cv3=c(rmse_cv3,sqrt(err3/nrow(train_X)))
+  rmse_cv4=c(rmse_cv4,sqrt(err4/nrow(train_X)))
+}
+
+rmse_cv_lr=data.frame(eta=rep(seq(0.1,1,0.05),2),rmse=c(rmse_cv3,rmse_cv4),
+                      type=c(rep('original',19),rep('standardized',19)))
+
+
+ggplot(rmse_cv_lr,aes(x=eta,y=rmse,col=type))+geom_line(aes(group=type))+geom_point()
+
+
+# xgboost-optimal
+
+xgbmodel=xgboost(data =as.matrix(train_X), label = train_Y, eta = 0.25, nrounds = 10)
+xgbmodel_norm=xgboost(data =as.matrix(norm_train_X), label = train_Y, eta = 0.25, nrounds = 20)
+
+pred=predict(xgbmodel,as.matrix(test_X))
+sqrt(mean((pred-test_Y)^2))
+pred_norm=predict(xgbmodel_norm,as.matrix(norm_test_X))
+sqrt(mean((pred_norm-test_Y)^2))
+
+norm_train=norm_train_X
+norm_train$trip_duration=train_Y
+norm_test=norm_test_X
+norm_test$trip_duration=test_Y
+write.csv(norm_test,'norm_test.csv')
+write.csv(norm_train,'norm_train.csv')
