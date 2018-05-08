@@ -1,0 +1,82 @@
+import pandas as pd
+import numpy as np
+train=pd.read_csv('train_sample_clean.csv')
+test=pd.read_csv('test_sample_clean.csv')
+
+# flat neural network
+import tensorflow as tf
+features=['vendor_id',
+ 'passenger_count',
+ 'pickup_longitude',
+ 'pickup_latitude',
+ 'dropoff_longitude',
+ 'dropoff_latitude',
+ 'pickup_wd',
+ 'pickup_mm',
+ 'pickup_hh',
+ 'dist']
+
+feature_cols = [tf.contrib.layers.real_valued_column(k) for k in features[1:]]
+vendor_id_column =tf.feature_column.categorical_column_with_vocabulary_list(key='vendor_id',vocabulary_list=[1,2],default_value=0)
+feature_cols.append(tf.feature_column.indicator_column(vendor_id_column))
+
+estimator1 = tf.contrib.learn.DNNRegressor(
+    feature_columns=feature_cols,
+    hidden_units=[100,100,20],
+    activation_fn=tf.nn.relu,
+    dropout=0.8)
+    
+
+# def input format
+def input_fn(data_set):
+    feature_cols = {k: tf.constant(data_set[k].values) for k in features}
+    labels = tf.constant(data_set['trip_duration'].values)
+    return feature_cols, labels
+ 
+estimator1.fit(input_fn=lambda: input_fn(train), steps=5000)
+estimator1.evaluate(input_fn=lambda: input_fn(test), steps=1)
+
+
+# deep neural network
+estimator2 = tf.contrib.learn.DNNRegressor(
+    feature_columns=feature_cols,
+    hidden_units=[20,20,20,20,20,20],
+    activation_fn=tf.nn.relu,
+    dropout=0.8)
+estimator2.fit(input_fn=lambda: input_fn(train), steps=5000)
+estimator2.evaluate(input_fn=lambda: input_fn(test), steps=1)
+
+
+## DNN-normalized
+dat=train.append(test)
+train_norm=pd.DataFrame()
+test_norm=pd.DataFrame()
+for k in features[1:]:
+    train_norm[k]=(train[k]-np.mean(dat[k]))/np.std(dat[k])
+    test_norm[k]=(test[k]-np.mean(dat[k]))/np.std(dat[k])
+    
+train_norm.describe()
+train_norm['vendor_id']=train['vendor_id']
+train_norm['trip_duration']=train['trip_duration']
+test_norm['vendor_id']=test['vendor_id']
+test_norm['trip_duration']=test['trip_duration']
+
+# flat neural network
+estimator1 = tf.contrib.learn.DNNRegressor(
+    feature_columns=feature_cols,
+    hidden_units=[100,100,20],
+    activation_fn=tf.nn.relu,
+    dropout=0.8)
+    
+estimator1.fit(input_fn=lambda: input_fn(train_norm), steps=5000)
+estimator1.evaluate(input_fn=lambda: input_fn(test_norm), steps=1)
+
+# deep neural network
+estimator2 = tf.contrib.learn.DNNRegressor(
+    feature_columns=feature_cols,
+    hidden_units=[20,20,20,20,20,20],
+    activation_fn=tf.nn.relu,
+    dropout=0.8)
+estimator2.fit(input_fn=lambda: input_fn(train_norm), steps=5000)
+estimator2.evaluate(input_fn=lambda: input_fn(test_norm), steps=1)
+
